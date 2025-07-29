@@ -23,7 +23,7 @@ class NetworkMonitor:
     """Scans the network using nmap and tracks devices."""
 
     HOST_REGEX = re.compile(
-        r"^Nmap scan report for (?:[\w\.\-]+ )?\(?(?P<ip>\d+\.\d+\.\d+\.\d+)\)?"
+        r"^Nmap scan report for (?:[\w.-]+ )?\(?(?P<ip>\d+\.\d+\.\d+\.\d+)\)?"
     )
     MAC_REGEX = re.compile(
         r"^MAC Address: (?P<mac>(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2})"
@@ -89,7 +89,7 @@ class NetworkMonitor:
                 del self._devices[m]
 
     def scan(self) -> None:
-        """Perform an nmap ping scan and update devices."""
+        """Perform a nmap ping scan and update devices."""
         raw = self._run_command()
         if self.verbose:
             print(raw)

@@ -1,3 +1,4 @@
 devices.csv
 devices.json
 .idea/
+__pycache__/

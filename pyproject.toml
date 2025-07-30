@@ -6,4 +6,5 @@ version = "0.1"
 cli = ["click >=8.1"]
 
 [project.scripts]
-lan-scan = "lan_scanner.cli:app"
+lan-scan     = "simple_scanner.cli:app"
+lan-scan-gui = "simple_scanner.gui:main"

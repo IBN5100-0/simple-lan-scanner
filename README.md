@@ -23,7 +23,7 @@
 ## 🚀 Quick start
 
 ```bash
-git clone https://github.com/<your‑user>/simple-lan-scanner.git
+git clone https://github.com/IBN5100-0/simple-lan-scanner.git
 cd simple-lan-scanner
 python -m venv .venv && source .venv/bin/activate  # Win: .venv\Scripts\activate
 pip install -e .[cli]

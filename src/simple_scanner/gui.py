@@ -5,7 +5,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from typing import Literal
 
-from scanner import NetworkMonitor
+from .scanner import NetworkMonitor
 
 
 class SettingsDialog(tk.Toplevel):

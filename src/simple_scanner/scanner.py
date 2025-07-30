@@ -5,7 +5,7 @@ import socket
 import ipaddress
 import shutil
 from typing import Dict, List, Optional
-from device import Device
+from models import Device
 
 
 import ipaddress

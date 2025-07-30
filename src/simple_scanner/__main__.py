@@ -1,6 +1,6 @@
 import argparse
 import time
-from network_monitor import NetworkMonitor
+from scanner import NetworkMonitor
 
 
 def main() -> None:

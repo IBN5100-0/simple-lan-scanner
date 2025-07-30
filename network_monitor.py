@@ -8,16 +8,45 @@ from typing import Dict, List, Optional
 from device import Device
 
 
+import ipaddress
+import socket
+
+
 def autodetect_network() -> str:
-    """Determine the local IPv4 address and assume a /24 network."""
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        s.connect(('8.8.8.8', 80))
-        local_ip = s.getsockname()[0]
-    finally:
-        s.close()
-    net = ipaddress.IPv4Network(local_ip + '/24', strict=False)
-    return str(net)
+    """
+    Return the most likely 'home‑LAN' /24 network, skipping
+    VirtualBox host‑only (192.168.56.*) and link‑local ranges.
+    """
+    hostname = socket.gethostname()
+    ips = {info[4][0] for info in socket.getaddrinfo(hostname, None, socket.AF_INET)}
+
+    # ------------------------------------------------------------------ #
+    # 1) throw away addresses we almost never want to scan automatically
+    # ------------------------------------------------------------------ #
+    def unwanted(ip: str) -> bool:
+        return (
+            ip.startswith("169.254.")            # Windows APIPA
+            or ip.startswith("192.168.56.")      # VirtualBox host‑only
+        )
+
+    ips = [ip for ip in ips if not unwanted(ip)]
+    if not ips:
+        raise RuntimeError("Could not find a suitable IPv4 address")
+
+    # ------------------------------------------------------------------ #
+    # 2) preference scores → choose highest
+    # ------------------------------------------------------------------ #
+    def score(ip: str) -> int:
+        if ip.startswith("192.168."):
+            return 3
+        if ip.startswith("172.") and 16 <= int(ip.split(".")[1]) <= 31:
+            return 2
+        if ip.startswith("10."):
+            return 1
+        return 0
+
+    best_ip = max(ips, key=score)
+    return str(ipaddress.ip_network(f"{best_ip}/24", strict=False))
 
 class NetworkMonitor:
     """Scans the network using nmap and tracks devices."""

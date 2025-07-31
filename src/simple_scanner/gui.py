@@ -92,7 +92,7 @@ class NetworkMonitorGUI(tk.Tk):
             "remove_stale": tk.BooleanVar(value=False),
             "verbose": tk.BooleanVar(value=False),
             "interval": tk.IntVar(value=30),
-            "json_path": tk.StringVar(value="devices.json"),
+            "json_path": tk.StringVar(value=""),  # No default output file
         }
 
         # Store button references for easier access
@@ -102,7 +102,7 @@ class NetworkMonitorGUI(tk.Tk):
         self.stop_btn.pack(side="left")
         ttk.Button(ctrl, text="Settings", command=self.open_settings).pack(side="right")
 
-        self.monitor = NetworkMonitor(data_file="devices.json")
+        self.monitor = NetworkMonitor(use_persistence=True)
         self._running = False
 
     # ----------------------------------------------------------------- #
@@ -118,10 +118,10 @@ class NetworkMonitorGUI(tk.Tk):
 
         # cache for convenience / pylint
         self.interval = int(self.vars["interval"].get())
-        self.json_path = str(self.vars["json_path"].get())
+        self.json_path = str(self.vars["json_path"].get()).strip()
 
-        # fresh JSON each run
-        if os.path.exists(self.json_path):
+        # fresh JSON each run (only if path is specified)
+        if self.json_path and os.path.exists(self.json_path):
             os.remove(self.json_path)
 
         # enable / disable buttons
@@ -147,8 +147,10 @@ class NetworkMonitorGUI(tk.Tk):
 
     def _scan(self) -> None:
         try:
-            self.monitor.scan()
-            self.monitor.to_json(self.json_path)
+            self.monitor.scan()  # This automatically saves to core data file
+            # Only save to output file if path is specified
+            if self.json_path:
+                self.monitor.to_json(self.json_path)
             self._refresh(self.monitor.devices())
         except Exception as exc:  # pragma: no cover
             messagebox.showerror("Error", str(exc))

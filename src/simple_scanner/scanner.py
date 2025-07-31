@@ -11,6 +11,23 @@ from typing import Dict, List, Optional
 from .models import Device
 
 
+def get_user_data_dir() -> Path:
+    """Get the user data directory for storing persistent device data."""
+    if os.name == 'nt':  # Windows
+        data_dir = Path(os.environ.get('APPDATA', Path.home() / 'AppData' / 'Roaming')) / 'simple-lan-scanner'
+    else:  # Unix-like (Linux, macOS)
+        data_dir = Path.home() / '.simple-lan-scanner'
+    
+    # Create directory if it doesn't exist
+    data_dir.mkdir(parents=True, exist_ok=True)
+    return data_dir
+
+
+def get_core_data_file() -> Path:
+    """Get the path to the core persistent data file."""
+    return get_user_data_dir() / 'devices.json'
+
+
 def autodetect_network() -> str:
     """
     Return the most likely 'home‑LAN' /24 network, skipping
@@ -66,12 +83,12 @@ class NetworkMonitor:
         network: Optional[str] = None,
         remove_stale: bool = False,
         verbose: bool = False,
-        data_file: Optional[str] = None,
+        use_persistence: bool = True,
     ) -> None:
         self.network = network or autodetect_network()
         self.remove_stale = remove_stale
         self.verbose = verbose
-        self.data_file = data_file or "devices.json"
+        self.use_persistence = use_persistence
         self._devices: Dict[str, Device] = {}
 
         # Locate nmap executable
@@ -81,8 +98,9 @@ class NetworkMonitor:
                 "nmap not found. Please install nmap and ensure it's in your PATH."
             )
         
-        # Load existing device data if available
-        self._load_existing_data()
+        # Load existing device data if persistence is enabled
+        if self.use_persistence:
+            self._load_existing_data()
 
     def _run_command(self) -> str:
         """Run nmap ping scan on the target network and return its output."""
@@ -108,12 +126,13 @@ class NetworkMonitor:
         return result.stdout
 
     def _load_existing_data(self) -> None:
-        """Load existing device data from JSON file if it exists."""
-        if not os.path.exists(self.data_file):
+        """Load existing device data from the core data file if it exists."""
+        core_file = get_core_data_file()
+        if not core_file.exists():
             return
         
         try:
-            with open(self.data_file, 'r', encoding='utf-8') as f:
+            with open(core_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             
             for device_data in data:
@@ -125,11 +144,26 @@ class NetworkMonitor:
                 self._devices[mac] = Device(mac, ip, date_added, last_seen)
                 
             if self.verbose:
-                print(f"Loaded {len(self._devices)} existing devices from {self.data_file}")
+                print(f"Loaded {len(self._devices)} existing devices from {core_file}")
                 
         except (json.JSONDecodeError, KeyError, ValueError) as e:
             if self.verbose:
-                print(f"Warning: Could not load existing data from {self.data_file}: {e}")
+                print(f"Warning: Could not load existing data from {core_file}: {e}")
+
+    def _save_core_data(self) -> None:
+        """Save current device data to the core data file."""
+        if not self.use_persistence:
+            return
+            
+        core_file = get_core_data_file()
+        data = [d.to_dict() for d in self.devices()]
+        
+        try:
+            with open(core_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2)
+        except (OSError, IOError) as e:
+            if self.verbose:
+                print(f"Warning: Could not save core data to {core_file}: {e}")
 
     def _parse(self, raw: str) -> None:
         now = datetime.datetime.now(datetime.timezone.utc)
@@ -167,6 +201,10 @@ class NetworkMonitor:
             stale = [m for m in self._devices if m not in seen_macs]
             for m in stale:
                 del self._devices[m]
+        
+        # Always update the core data file if persistence is enabled
+        if self.use_persistence:
+            self._save_core_data()
 
     def scan(self) -> None:
         """Perform a nmap ping scan and update devices."""

@@ -25,8 +25,10 @@ def app() -> None:
 @click.option("--verbose", is_flag=True, help="Print raw nmap output")
 @click.option("--remove-stale", is_flag=True, help="Prune devices missing in scan")
 def scan(out: str | None, network: str | None, verbose: bool, remove_stale: bool) -> None:
-    # For one-shot scans, don't load existing data to avoid conflicts with timestamped outputs
-    nm = NetworkMonitor(network=network, verbose=verbose, remove_stale=remove_stale, data_file=None)
+    # For scan command: use persistence to get date_added, but don't save back to core
+    nm = NetworkMonitor(network=network, verbose=verbose, remove_stale=remove_stale, use_persistence=True)
+    # Override use_persistence after loading to prevent saving during scan
+    nm.use_persistence = False
     nm.scan()
 
     if out is None:
@@ -63,23 +65,20 @@ def monitor(
     verbose: bool,
     remove_stale: bool,
 ) -> None:
-    # default outputs if none supplied
-    if not json_path and not csv_path:
-        json_path = "devices.json"
-        csv_path  = "devices.csv"
+    # Only create output files if explicitly requested (no defaults)
 
-    # For monitor mode, use the JSON file for persistence
-    data_file = json_path if json_path else "devices.json"
-    nm = NetworkMonitor(network=network, verbose=verbose, remove_stale=remove_stale, data_file=data_file)
+    # For monitor mode, always use persistence
+    nm = NetworkMonitor(network=network, verbose=verbose, remove_stale=remove_stale, use_persistence=True)
     click.echo(f"Scanning {nm.network} every {interval}s – Ctrl‑C to stop")
 
     try:
         while True:
-            nm.scan()
+            nm.scan()  # This automatically saves to core data file
             for d in nm.devices():
                 click.echo(d)
+            # Save to user-specified output files
             if json_path:
-                nm.to_json(json_path)
+                nm.to_json(json_path)  
                 if verbose:
                     click.echo(f"Saved JSON → {json_path}")
             if csv_path:

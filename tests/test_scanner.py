@@ -92,14 +92,19 @@ class TestNetworkMonitor:
 
     def test_init_with_custom_network(self, mock_nmap_executable):
         """Test NetworkMonitor initialization with custom network."""
-        monitor = NetworkMonitor(network='10.0.0.0/24')
-        assert monitor.network == '10.0.0.0/24'
-        assert not monitor.remove_stale
-        assert not monitor.verbose
+        with patch('simple_scanner.scanner.get_core_data_file') as mock_get_file:
+            mock_get_file.return_value.exists.return_value = False
+            monitor = NetworkMonitor(network='10.0.0.0/24')
+            assert monitor.network == '10.0.0.0/24'
+            assert not monitor.remove_stale
+            assert not monitor.verbose
+            assert monitor.use_persistence
 
     def test_init_with_autodetect_network(self, mock_nmap_executable):
         """Test NetworkMonitor initialization with autodetected network."""
-        with patch('simple_scanner.scanner.autodetect_network', return_value='192.168.1.0/24'):
+        with patch('simple_scanner.scanner.autodetect_network', return_value='192.168.1.0/24'), \
+             patch('simple_scanner.scanner.get_core_data_file') as mock_get_file:
+            mock_get_file.return_value.exists.return_value = False
             monitor = NetworkMonitor()
             assert monitor.network == '192.168.1.0/24'
 
@@ -161,14 +166,16 @@ class TestNetworkMonitor:
 
     def test_parse_nmap_output(self, mock_nmap_executable, sample_nmap_output, mock_datetime):
         """Test parsing of nmap output."""
-        monitor = NetworkMonitor(network='192.168.1.0/24')
-        
-        with patch('datetime.datetime') as mock_dt:
-            mock_dt.now.return_value = mock_datetime
-            mock_dt.timezone = MagicMock()
-            mock_dt.timezone.utc = mock_datetime.tzinfo
+        with patch('simple_scanner.scanner.get_core_data_file') as mock_get_file:
+            mock_get_file.return_value.exists.return_value = False
+            monitor = NetworkMonitor(network='192.168.1.0/24', use_persistence=False)
             
-            monitor._parse(sample_nmap_output)
+            with patch('datetime.datetime') as mock_dt:
+                mock_dt.now.return_value = mock_datetime
+                mock_dt.timezone = MagicMock()
+                mock_dt.timezone.utc = mock_datetime.tzinfo
+                
+                monitor._parse(sample_nmap_output)
             
             devices = monitor.devices()
             assert len(devices) == 3
@@ -187,15 +194,19 @@ class TestNetworkMonitor:
 
     def test_parse_empty_output(self, mock_nmap_executable, empty_nmap_output):
         """Test parsing of empty nmap output."""
-        monitor = NetworkMonitor(network='192.168.1.0/24')
-        monitor._parse(empty_nmap_output)
+        with patch('simple_scanner.scanner.get_core_data_file') as mock_get_file:
+            mock_get_file.return_value.exists.return_value = False
+            monitor = NetworkMonitor(network='192.168.1.0/24', use_persistence=False)
+            monitor._parse(empty_nmap_output)
         
         devices = monitor.devices()
         assert len(devices) == 0
 
     def test_parse_updates_existing_device(self, mock_nmap_executable, mock_datetime):
         """Test that existing devices are updated, not duplicated."""
-        monitor = NetworkMonitor(network='192.168.1.0/24')
+        with patch('simple_scanner.scanner.get_core_data_file') as mock_get_file:
+            mock_get_file.return_value.exists.return_value = False
+            monitor = NetworkMonitor(network='192.168.1.0/24', use_persistence=False)
         
         # First parse
         first_output = """Nmap scan report for 192.168.1.1
@@ -216,7 +227,9 @@ MAC Address: AA:BB:CC:DD:EE:FF (Manufacturer)"""
 
     def test_parse_with_remove_stale_enabled(self, mock_nmap_executable, mock_datetime):
         """Test that stale devices are removed when remove_stale is enabled."""
-        monitor = NetworkMonitor(network='192.168.1.0/24', remove_stale=True)
+        with patch('simple_scanner.scanner.get_core_data_file') as mock_get_file:
+            mock_get_file.return_value.exists.return_value = False
+            monitor = NetworkMonitor(network='192.168.1.0/24', remove_stale=True, use_persistence=False)
         
         # Add a device manually
         with patch('datetime.datetime') as mock_dt:
@@ -260,7 +273,9 @@ MAC Address: AA:BB:CC:DD:EE:FF (Manufacturer)"""
 
     def test_to_json(self, mock_nmap_executable, temp_output_file):
         """Test JSON export functionality."""
-        monitor = NetworkMonitor(network='192.168.1.0/24')
+        with patch('simple_scanner.scanner.get_core_data_file') as mock_get_file:
+            mock_get_file.return_value.exists.return_value = False
+            monitor = NetworkMonitor(network='192.168.1.0/24', use_persistence=False)
         
         # Add a test device
         test_device = Device('aa:bb:cc:dd:ee:ff', '192.168.1.100')
@@ -280,7 +295,9 @@ MAC Address: AA:BB:CC:DD:EE:FF (Manufacturer)"""
 
     def test_to_csv(self, mock_nmap_executable, tmp_path):
         """Test CSV export functionality."""
-        monitor = NetworkMonitor(network='192.168.1.0/24')
+        with patch('simple_scanner.scanner.get_core_data_file') as mock_get_file:
+            mock_get_file.return_value.exists.return_value = False
+            monitor = NetworkMonitor(network='192.168.1.0/24', use_persistence=False)
         csv_file = tmp_path / "test_output.csv"
         
         # Add a test device
@@ -318,7 +335,8 @@ MAC Address: AA:BB:CC:DD:EE:FF (Manufacturer)"""
             json.dump(existing_data, f)
         
         # Create monitor with existing data file
-        monitor = NetworkMonitor(network='192.168.1.0/24', data_file=str(data_file), verbose=True)
+        with patch('simple_scanner.scanner.get_core_data_file', return_value=data_file):
+            monitor = NetworkMonitor(network='192.168.1.0/24', use_persistence=True, verbose=True)
         
         # Verify device was loaded
         devices = monitor.devices()
@@ -347,7 +365,8 @@ MAC Address: AA:BB:CC:DD:EE:FF (Manufacturer)"""
             json.dump(existing_data, f)
         
         # Create monitor and simulate a scan finding the same device
-        monitor = NetworkMonitor(network='192.168.1.0/24', data_file=str(data_file))
+        with patch('simple_scanner.scanner.get_core_data_file', return_value=data_file):
+            monitor = NetworkMonitor(network='192.168.1.0/24', use_persistence=True)
         
         nmap_output = """Nmap scan report for 192.168.1.100
 Host is up (0.001s latency).
@@ -374,7 +393,8 @@ MAC Address: AA:BB:CC:DD:EE:FF (Manufacturer)"""
         data_file = tmp_path / "nonexistent.json"
         
         # Should not raise error, just start with empty devices
-        monitor = NetworkMonitor(network='192.168.1.0/24', data_file=str(data_file))
+        with patch('simple_scanner.scanner.get_core_data_file', return_value=data_file):
+            monitor = NetworkMonitor(network='192.168.1.0/24', use_persistence=True)
         
         devices = monitor.devices()
         assert len(devices) == 0
@@ -388,7 +408,8 @@ MAC Address: AA:BB:CC:DD:EE:FF (Manufacturer)"""
             f.write("invalid json content")
         
         # Should not raise error, just start with empty devices and show warning
-        monitor = NetworkMonitor(network='192.168.1.0/24', data_file=str(data_file), verbose=True)
+        with patch('simple_scanner.scanner.get_core_data_file', return_value=data_file):
+            monitor = NetworkMonitor(network='192.168.1.0/24', use_persistence=True, verbose=True)
         
         devices = monitor.devices()
         assert len(devices) == 0
@@ -411,7 +432,8 @@ MAC Address: AA:BB:CC:DD:EE:FF (Manufacturer)"""
         with open(data_file, 'w', encoding='utf-8') as f:
             json.dump(existing_data, f)
         
-        monitor = NetworkMonitor(network='192.168.1.0/24', data_file=str(data_file))
+        with patch('simple_scanner.scanner.get_core_data_file', return_value=data_file):
+            monitor = NetworkMonitor(network='192.168.1.0/24', use_persistence=True)
         
         # Simulate scan finding same device with new IP
         nmap_output = """Nmap scan report for 192.168.1.150

@@ -73,7 +73,7 @@ class TestCLI:
             network=None, 
             verbose=False, 
             remove_stale=False,
-            data_file=None
+            use_persistence=True
         )
         mock_monitor.scan.assert_called_once()
         mock_monitor.to_json.assert_called_once()
@@ -98,7 +98,7 @@ class TestCLI:
             network=None, 
             verbose=False, 
             remove_stale=False,
-            data_file=None
+            use_persistence=True
         )
         mock_monitor.scan.assert_called_once()
         mock_monitor.to_csv.assert_called_once()
@@ -126,7 +126,7 @@ class TestCLI:
             network='10.0.0.0/24', 
             verbose=True, 
             remove_stale=True,
-            data_file=None
+            use_persistence=True
         )
 
     def test_scan_command_invalid_output_extension(self):
@@ -164,7 +164,7 @@ class TestCLI:
             network=None, 
             verbose=False, 
             remove_stale=False,
-            data_file="devices.json"
+            use_persistence=True
         )
         mock_monitor.scan.assert_called()
 

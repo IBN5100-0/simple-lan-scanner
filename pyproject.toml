@@ -23,6 +23,11 @@ classifiers = [
 
 [project.optional-dependencies]
 cli = ["click >=8.1"]
+test = [
+    "pytest >=7.0",
+    "pytest-mock >=3.10",
+    "pytest-cov >=4.0",
+]
 
 [project.scripts]
 lan-scan = "simple_scanner.cli:app"

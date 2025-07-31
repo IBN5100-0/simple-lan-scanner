@@ -105,3 +105,5 @@ def gui() -> None:
     except Exception as exc:
         click.secho(f"GUI Error: {exc}", fg="red", err=True)
         raise SystemExit(1)
+
+

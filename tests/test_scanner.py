@@ -252,7 +252,9 @@ MAC Address: AA:BB:CC:DD:EE:FF (Manufacturer)"""
 
     def test_scan_method(self, mock_nmap_executable, sample_nmap_output):
         """Test the scan method integration."""
-        monitor = NetworkMonitor(network='192.168.1.0/24', verbose=True)
+        with patch('simple_scanner.scanner.get_core_data_file') as mock_get_file:
+            mock_get_file.return_value.exists.return_value = False
+            monitor = NetworkMonitor(network='192.168.1.0/24', verbose=True, use_persistence=False)
         
         mock_result = MagicMock()
         mock_result.returncode = 0

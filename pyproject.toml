@@ -1,6 +1,6 @@
 [project]
 name = "simple_lan_scanner"
-version = "0.1"
+version = "0.2.0b1"
 description = "A Python LAN scanning tool that uses nmap to discover devices on the local network"
 authors = [
     {name = "Simple LAN Scanner Contributors"}

@@ -16,7 +16,7 @@
 | **Persistent data storage** | Core device data stored in user data directory (`%APPDATA%/simple-lan-scanner/` on Windows, `~/.simple-lan-scanner/` on Unix). |
 | **JSON / CSV export** | `lan-scan scan -o snapshot.json` or `devices.csv` with flexible output options. |
 | **CLI** (`lan‑scan`) | One‑shot scan and continuous monitor loop with clean file organization. |
-| **Tkinter GUI (experimental)** | Start/stop scans, set interval, view live table. Early development stage. |
+| **Modern GUI** | Professional interface with menu bar, toolbar, live search/filtering, color-coded status, advanced tabbed settings, and export functionality. |
 | **Python API** | `from simple_scanner import NetworkMonitor` for embedding in other code. |
 
 ---
@@ -39,5 +39,5 @@ lan-scan scan -o devices.json --verbose
 # monitor network continuously
 lan-scan monitor --interval 60 --verbose
 
-# start GUI (experimental)
+# start GUI
 lan-scan gui

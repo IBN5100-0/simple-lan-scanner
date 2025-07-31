@@ -6,8 +6,10 @@ import datetime
 import threading
 from typing import Optional, Dict, Any
 import os
+import json
+from pathlib import Path
 
-from .scanner import NetworkMonitor, autodetect_network
+from .scanner import NetworkMonitor, autodetect_network, get_user_data_dir
 from .models import Device
 
 
@@ -327,6 +329,10 @@ class ModernSettingsDialog(tk.Toplevel):
         self.settings["mac_lookup"] = self.mac_lookup_var.get()
         self.settings["use_persistence"] = self.persist_var.get()
         self.settings["max_threads"] = self.max_threads_var.get()
+        
+        # Notify parent window to save settings to disk
+        if hasattr(self.master, '_save_settings_to_disk'):
+            self.master._save_settings_to_disk()
 
 
 class ModernNetworkMonitorGUI(tk.Tk):
@@ -347,26 +353,12 @@ class ModernNetworkMonitorGUI(tk.Tk):
         style.configure("Success.TLabel", foreground="green")
         style.configure("Error.TLabel", foreground="red")
         
-        # Settings dictionary
-        self.settings = {
-            "interval": 30,
-            "autostart": False,
-            "remove_stale": False,
-            "notify_new": True,
-            "notify_change": False,
-            "network": "auto",
-            "timeout": 300,
-            "json_path": "",
-            "csv_path": "",
-            "timestamp_files": False,
-            "verbose": False,
-            "mac_lookup": True,
-            "use_persistence": True,
-            "max_threads": 1,
-        }
+        # Load settings from disk or use defaults
+        self.settings = self._load_settings()
         
         self._running = False
         self._devices_cache: list[Device] = []
+        self._last_device_count = 0
         self.monitor: Optional[NetworkMonitor] = None
         
         self._create_menu()
@@ -379,6 +371,10 @@ class ModernNetworkMonitorGUI(tk.Tk):
         
         # Bind events
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+        
+        # Auto-start if configured
+        if self.settings.get("autostart", False):
+            self.after(100, self._start_scanning)
         
     def _create_menu(self) -> None:
         """Create menu bar."""
@@ -549,9 +545,42 @@ class ModernNetworkMonitorGUI(tk.Tk):
             self.after(0, lambda: self.last_scan_label.config(
                 text=f"Last scan: {datetime.datetime.now().strftime('%H:%M:%S')}"
             ))
+            
+            # Save to configured output files if enabled
+            self.after(0, self._save_output_files)
+            
         except Exception as e:
             self.after(0, lambda: messagebox.showerror("Scan Error", str(e)))
             self.after(0, lambda: self.status_label.config(text=f"Error: {e}", style="Error.TLabel"))
+    
+    def _save_output_files(self) -> None:
+        """Save scan results to configured output files."""
+        if not self.monitor:
+            return
+            
+        # Handle JSON output
+        json_path = self.settings.get("json_path", "")
+        if json_path:
+            try:
+                if self.settings.get("timestamp_files", False):
+                    base, ext = os.path.splitext(json_path)
+                    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                    json_path = f"{base}_{timestamp}{ext}"
+                self.monitor.to_json(json_path)
+            except Exception as e:
+                messagebox.showerror("JSON Export Error", f"Failed to save JSON: {e}")
+        
+        # Handle CSV output
+        csv_path = self.settings.get("csv_path", "")
+        if csv_path:
+            try:
+                if self.settings.get("timestamp_files", False):
+                    base, ext = os.path.splitext(csv_path)
+                    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                    csv_path = f"{base}_{timestamp}{ext}"
+                self.monitor.to_csv(csv_path)
+            except Exception as e:
+                messagebox.showerror("CSV Export Error", f"Failed to save CSV: {e}")
             
     def _manual_refresh(self) -> None:
         """Manually refresh device list."""
@@ -602,6 +631,13 @@ class ModernNetworkMonitorGUI(tk.Tk):
             # Check if new device
             if (now - device.date_added).seconds < 300:
                 tags = tags + ("new",)
+                # Show notification if enabled
+                if self.settings.get("notify_new", True) and hasattr(self, '_last_device_count'):
+                    if displayed > self._last_device_count:
+                        self.after(0, lambda: messagebox.showinfo(
+                            "New Device Found", 
+                            f"New device discovered: {device.mac_address} ({device.ip_address})"
+                        ))
                 
             # Insert into tree
             self.tree.insert("", "end", values=(
@@ -621,6 +657,9 @@ class ModernNetworkMonitorGUI(tk.Tk):
             self.device_count_label.config(text=f"{displayed} of {total} devices")
         else:
             self.device_count_label.config(text=f"{total} devices")
+        
+        # Store count for new device notifications
+        self._last_device_count = displayed
             
     def _sort_tree(self, column: str) -> None:
         """Sort treeview by column."""
@@ -685,10 +724,52 @@ class ModernNetworkMonitorGUI(tk.Tk):
                            "A modern network discovery tool\n\n"
                            "Built with Python and Tkinter")
         
+    def _load_settings(self) -> Dict[str, Any]:
+        """Load settings from disk or return defaults."""
+        settings_file = get_user_data_dir() / "gui_settings.json"
+        
+        default_settings = {
+            "interval": 30,
+            "autostart": False,
+            "remove_stale": False,
+            "notify_new": True,
+            "notify_change": False,
+            "network": "auto",
+            "timeout": 300,
+            "json_path": "",
+            "csv_path": "",
+            "timestamp_files": False,
+            "verbose": False,
+            "mac_lookup": True,
+            "use_persistence": True,
+            "max_threads": 1,
+        }
+        
+        if settings_file.exists():
+            try:
+                with open(settings_file, 'r') as f:
+                    loaded_settings = json.load(f)
+                    # Merge with defaults to handle new settings
+                    default_settings.update(loaded_settings)
+            except Exception as e:
+                print(f"Failed to load settings: {e}")
+        
+        return default_settings
+    
+    def _save_settings_to_disk(self) -> None:
+        """Save settings to disk."""
+        settings_file = get_user_data_dir() / "gui_settings.json"
+        try:
+            with open(settings_file, 'w') as f:
+                json.dump(self.settings, f, indent=2)
+        except Exception as e:
+            print(f"Failed to save settings: {e}")
+    
     def _on_close(self) -> None:
         """Handle window close."""
         if self._running:
             self._stop_scanning()
+        self._save_settings_to_disk()
         self.destroy()
 
 

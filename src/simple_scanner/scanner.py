@@ -246,6 +246,20 @@ class NetworkMonitor:
     def devices(self) -> List[Device]:
         """Return list of tracked devices."""
         return list(self._devices.values())
+    
+    @staticmethod
+    def get_device_header() -> str:
+        """Get formatted header for device display."""
+        mac_header = "MAC Address".ljust(17)
+        ip_header = "IP Address".ljust(15)
+        hostname_header = "Hostname".ljust(25)
+        manufacturer_header = "Manufacturer".ljust(28)
+        first_header = "First Seen".ljust(16)
+        last_header = "Last Seen"
+        
+        header = f"{mac_header} | {ip_header} | {hostname_header} | {manufacturer_header} | {first_header} | {last_header}"
+        separator = "-" * len(header)
+        return f"{header}\n{separator}"
 
     def to_json(self, path: str) -> None:
         import json

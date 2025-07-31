@@ -74,8 +74,17 @@ def monitor(
     try:
         while True:
             nm.scan()  # This automatically saves to core data file
-            for d in nm.devices():
-                click.echo(d)
+            
+            # Display devices in a formatted table
+            devices = nm.devices()
+            if devices:
+                click.echo("\n" + nm.get_device_header())
+                for d in sorted(devices, key=lambda x: x.ip_address):
+                    click.echo(d)
+                click.echo(f"\nTotal devices: {len(devices)}")
+            else:
+                click.echo("No devices found.")
+            
             # Save to user-specified output files
             if json_path:
                 nm.to_json(json_path)  

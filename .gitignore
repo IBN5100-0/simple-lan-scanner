@@ -11,3 +11,4 @@ data/
 .coverage
 htmlcov/
 .pytest_cache/
+.claude

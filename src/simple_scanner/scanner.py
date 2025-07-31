@@ -4,6 +4,9 @@ import re
 import socket
 import ipaddress
 import shutil
+import json
+import os
+from pathlib import Path
 from typing import Dict, List, Optional
 from .models import Device
 
@@ -63,10 +66,12 @@ class NetworkMonitor:
         network: Optional[str] = None,
         remove_stale: bool = False,
         verbose: bool = False,
+        data_file: Optional[str] = None,
     ) -> None:
         self.network = network or autodetect_network()
         self.remove_stale = remove_stale
         self.verbose = verbose
+        self.data_file = data_file or "devices.json"
         self._devices: Dict[str, Device] = {}
 
         # Locate nmap executable
@@ -75,6 +80,9 @@ class NetworkMonitor:
             raise RuntimeError(
                 "nmap not found. Please install nmap and ensure it's in your PATH."
             )
+        
+        # Load existing device data if available
+        self._load_existing_data()
 
     def _run_command(self) -> str:
         """Run nmap ping scan on the target network and return its output."""
@@ -98,6 +106,30 @@ class NetworkMonitor:
             error_msg = result.stderr.strip() if result.stderr else "Unknown error"
             raise RuntimeError(f"Nmap scan failed (exit code {result.returncode}): {error_msg}")
         return result.stdout
+
+    def _load_existing_data(self) -> None:
+        """Load existing device data from JSON file if it exists."""
+        if not os.path.exists(self.data_file):
+            return
+        
+        try:
+            with open(self.data_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            for device_data in data:
+                mac = device_data['mac_address'].lower()
+                ip = device_data['ip_address']
+                date_added = datetime.datetime.fromisoformat(device_data['date_added'])
+                last_seen = datetime.datetime.fromisoformat(device_data['last_seen'])
+                
+                self._devices[mac] = Device(mac, ip, date_added, last_seen)
+                
+            if self.verbose:
+                print(f"Loaded {len(self._devices)} existing devices from {self.data_file}")
+                
+        except (json.JSONDecodeError, KeyError, ValueError) as e:
+            if self.verbose:
+                print(f"Warning: Could not load existing data from {self.data_file}: {e}")
 
     def _parse(self, raw: str) -> None:
         now = datetime.datetime.now(datetime.timezone.utc)
@@ -123,8 +155,12 @@ class NetworkMonitor:
 
             seen_macs.add(mac)
             if mac in self._devices:
+                # Update existing device - preserve original date_added
                 self._devices[mac].update_last_seen(now)
+                # Update IP in case it changed (DHCP)
+                self._devices[mac].update_ip_address(ip)
             else:
+                # New device - set both timestamps to now
                 self._devices[mac] = Device(mac, ip, now, now)
 
         if self.remove_stale:

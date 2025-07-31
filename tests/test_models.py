@@ -107,6 +107,14 @@ class TestDevice:
         
         assert result == expected
 
+    def test_update_ip_address(self):
+        """Test updating IP address."""
+        device = Device("aa:bb:cc:dd:ee:ff", "192.168.1.100")
+        
+        device.update_ip_address("192.168.1.200")
+        
+        assert device.ip_address == "192.168.1.200"
+
     def test_slots_optimization(self):
         """Test that __slots__ prevents adding arbitrary attributes."""
         device = Device("aa:bb:cc:dd:ee:ff", "192.168.1.100")

@@ -4,6 +4,7 @@ import pytest
 import json
 import csv
 import subprocess
+import datetime
 from unittest.mock import patch, MagicMock, call
 from pathlib import Path
 
@@ -298,3 +299,137 @@ MAC Address: AA:BB:CC:DD:EE:FF (Manufacturer)"""
         assert len(rows) == 1
         assert rows[0]['mac_address'] == 'aa:bb:cc:dd:ee:ff'
         assert rows[0]['ip_address'] == '192.168.1.100'
+
+    def test_load_existing_data_success(self, mock_nmap_executable, tmp_path):
+        """Test loading existing device data from JSON file."""
+        data_file = tmp_path / "existing_devices.json"
+        
+        # Create existing data file
+        existing_data = [
+            {
+                'mac_address': 'aa:bb:cc:dd:ee:ff',
+                'ip_address': '192.168.1.100',
+                'date_added': '2023-01-01T10:00:00+00:00',
+                'last_seen': '2023-01-01T11:00:00+00:00'
+            }
+        ]
+        
+        with open(data_file, 'w', encoding='utf-8') as f:
+            json.dump(existing_data, f)
+        
+        # Create monitor with existing data file
+        monitor = NetworkMonitor(network='192.168.1.0/24', data_file=str(data_file), verbose=True)
+        
+        # Verify device was loaded
+        devices = monitor.devices()
+        assert len(devices) == 1
+        assert devices[0].mac_address == 'aa:bb:cc:dd:ee:ff'
+        assert devices[0].ip_address == '192.168.1.100'
+        assert devices[0].date_added == '2023-01-01T10:00:00+00:00'
+        assert devices[0].last_seen == '2023-01-01T11:00:00+00:00'
+
+    def test_load_existing_data_preserves_date_added(self, mock_nmap_executable, tmp_path, mock_datetime):
+        """Test that existing devices preserve their original date_added."""
+        data_file = tmp_path / "existing_devices.json"
+        
+        # Create existing data file with older date_added
+        old_date = datetime.datetime(2023, 1, 1, 10, 0, 0, tzinfo=datetime.timezone.utc)
+        existing_data = [
+            {
+                'mac_address': 'aa:bb:cc:dd:ee:ff',
+                'ip_address': '192.168.1.100',
+                'date_added': old_date.isoformat(),
+                'last_seen': old_date.isoformat()
+            }
+        ]
+        
+        with open(data_file, 'w', encoding='utf-8') as f:
+            json.dump(existing_data, f)
+        
+        # Create monitor and simulate a scan finding the same device
+        monitor = NetworkMonitor(network='192.168.1.0/24', data_file=str(data_file))
+        
+        nmap_output = """Nmap scan report for 192.168.1.100
+Host is up (0.001s latency).
+MAC Address: AA:BB:CC:DD:EE:FF (Manufacturer)"""
+        
+        with patch('datetime.datetime') as mock_dt:
+            mock_dt.now.return_value = mock_datetime  # Current time
+            mock_dt.timezone = MagicMock()
+            mock_dt.timezone.utc = mock_datetime.tzinfo
+            mock_dt.fromisoformat.return_value = old_date  # For loading existing data
+            
+            monitor._parse(nmap_output)
+        
+        devices = monitor.devices()
+        assert len(devices) == 1
+        
+        # Verify date_added is preserved (old), but last_seen is updated (new)
+        device = devices[0]
+        assert device.date_added == old_date.isoformat()  # Preserved
+        # Note: last_seen will be updated to mock_datetime during _parse
+
+    def test_load_existing_data_nonexistent_file(self, mock_nmap_executable, tmp_path):
+        """Test handling of nonexistent data file."""
+        data_file = tmp_path / "nonexistent.json"
+        
+        # Should not raise error, just start with empty devices
+        monitor = NetworkMonitor(network='192.168.1.0/24', data_file=str(data_file))
+        
+        devices = monitor.devices()
+        assert len(devices) == 0
+
+    def test_load_existing_data_invalid_json(self, mock_nmap_executable, tmp_path):
+        """Test handling of invalid JSON in data file."""
+        data_file = tmp_path / "invalid.json"
+        
+        # Create invalid JSON file
+        with open(data_file, 'w', encoding='utf-8') as f:
+            f.write("invalid json content")
+        
+        # Should not raise error, just start with empty devices and show warning
+        monitor = NetworkMonitor(network='192.168.1.0/24', data_file=str(data_file), verbose=True)
+        
+        devices = monitor.devices()
+        assert len(devices) == 0
+
+    def test_update_ip_address_for_existing_device(self, mock_nmap_executable, tmp_path, mock_datetime):
+        """Test that existing devices get IP updated when it changes (DHCP)."""
+        data_file = tmp_path / "devices.json"
+        
+        # Create existing data with old IP
+        old_date = datetime.datetime(2023, 1, 1, 10, 0, 0, tzinfo=datetime.timezone.utc)
+        existing_data = [
+            {
+                'mac_address': 'aa:bb:cc:dd:ee:ff',
+                'ip_address': '192.168.1.100',  # Old IP
+                'date_added': old_date.isoformat(),
+                'last_seen': old_date.isoformat()
+            }
+        ]
+        
+        with open(data_file, 'w', encoding='utf-8') as f:
+            json.dump(existing_data, f)
+        
+        monitor = NetworkMonitor(network='192.168.1.0/24', data_file=str(data_file))
+        
+        # Simulate scan finding same device with new IP
+        nmap_output = """Nmap scan report for 192.168.1.150
+Host is up (0.001s latency).
+MAC Address: AA:BB:CC:DD:EE:FF (Manufacturer)"""
+        
+        with patch('datetime.datetime') as mock_dt:
+            mock_dt.now.return_value = mock_datetime
+            mock_dt.timezone = MagicMock()
+            mock_dt.timezone.utc = mock_datetime.tzinfo
+            mock_dt.fromisoformat.return_value = old_date
+            
+            monitor._parse(nmap_output)
+        
+        devices = monitor.devices()
+        assert len(devices) == 1
+        
+        device = devices[0]
+        assert device.mac_address == 'aa:bb:cc:dd:ee:ff'
+        assert device.ip_address == '192.168.1.150'  # Updated IP
+        assert device.date_added == old_date.isoformat()  # Preserved

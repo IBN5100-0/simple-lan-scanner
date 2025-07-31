@@ -102,7 +102,7 @@ class NetworkMonitorGUI(tk.Tk):
         self.stop_btn.pack(side="left")
         ttk.Button(ctrl, text="Settings", command=self.open_settings).pack(side="right")
 
-        self.monitor = NetworkMonitor()
+        self.monitor = NetworkMonitor(data_file="devices.json")
         self._running = False
 
     # ----------------------------------------------------------------- #

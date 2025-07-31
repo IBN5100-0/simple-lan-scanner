@@ -7,3 +7,7 @@ CLAUDE.md
 simple_lan_scanner.egg-info
 
 data/
+
+.coverage
+htmlcov/
+.pytest_cache/

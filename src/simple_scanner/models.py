@@ -36,6 +36,10 @@ class Device:
 
     def update_last_seen(self, timestamp: Optional[datetime.datetime] = None) -> None:
         self._last_seen = timestamp or datetime.datetime.now(datetime.timezone.utc)
+    
+    def update_ip_address(self, ip_address: str) -> None:
+        """Update the IP address (useful for DHCP changes)."""
+        self._ip_address = ip_address
 
     def to_dict(self) -> dict:
         return {

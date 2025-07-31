@@ -25,7 +25,8 @@ def app() -> None:
 @click.option("--verbose", is_flag=True, help="Print raw nmap output")
 @click.option("--remove-stale", is_flag=True, help="Prune devices missing in scan")
 def scan(out: str | None, network: str | None, verbose: bool, remove_stale: bool) -> None:
-    nm = NetworkMonitor(network=network, verbose=verbose, remove_stale=remove_stale)
+    # For one-shot scans, don't load existing data to avoid conflicts with timestamped outputs
+    nm = NetworkMonitor(network=network, verbose=verbose, remove_stale=remove_stale, data_file=None)
     nm.scan()
 
     if out is None:
@@ -67,7 +68,9 @@ def monitor(
         json_path = "devices.json"
         csv_path  = "devices.csv"
 
-    nm = NetworkMonitor(network=network, verbose=verbose, remove_stale=remove_stale)
+    # For monitor mode, use the JSON file for persistence
+    data_file = json_path if json_path else "devices.json"
+    nm = NetworkMonitor(network=network, verbose=verbose, remove_stale=remove_stale, data_file=data_file)
     click.echo(f"Scanning {nm.network} every {interval}s – Ctrl‑C to stop")
 
     try:

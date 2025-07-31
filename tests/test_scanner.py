@@ -343,8 +343,8 @@ MAC Address: AA:BB:CC:DD:EE:FF (Manufacturer)"""
         assert len(devices) == 1
         assert devices[0].mac_address == 'aa:bb:cc:dd:ee:ff'
         assert devices[0].ip_address == '192.168.1.100'
-        assert devices[0].date_added == '2023-01-01T10:00:00+00:00'
-        assert devices[0].last_seen == '2023-01-01T11:00:00+00:00'
+        assert devices[0].date_added.isoformat() == '2023-01-01T10:00:00+00:00'
+        assert devices[0].last_seen.isoformat() == '2023-01-01T11:00:00+00:00'
 
     def test_load_existing_data_preserves_date_added(self, mock_nmap_executable, tmp_path, mock_datetime):
         """Test that existing devices preserve their original date_added."""
@@ -385,7 +385,7 @@ MAC Address: AA:BB:CC:DD:EE:FF (Manufacturer)"""
         
         # Verify date_added is preserved (old), but last_seen is updated (new)
         device = devices[0]
-        assert device.date_added == old_date.isoformat()  # Preserved
+        assert device.date_added == old_date  # Preserved
         # Note: last_seen will be updated to mock_datetime during _parse
 
     def test_load_existing_data_nonexistent_file(self, mock_nmap_executable, tmp_path):
@@ -454,4 +454,4 @@ MAC Address: AA:BB:CC:DD:EE:FF (Manufacturer)"""
         device = devices[0]
         assert device.mac_address == 'aa:bb:cc:dd:ee:ff'
         assert device.ip_address == '192.168.1.150'  # Updated IP
-        assert device.date_added == old_date.isoformat()  # Preserved
+        assert device.date_added == old_date  # Preserved

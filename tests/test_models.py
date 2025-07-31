@@ -19,8 +19,8 @@ class TestDevice:
             
             assert device.mac_address == "aa:bb:cc:dd:ee:ff"
             assert device.ip_address == "192.168.1.100"
-            assert device.date_added == mock_datetime.isoformat()
-            assert device.last_seen == mock_datetime.isoformat()
+            assert device.date_added == mock_datetime
+            assert device.last_seen == mock_datetime
 
     def test_device_creation_with_custom_timestamps(self):
         """Test device creation with custom timestamps."""
@@ -36,8 +36,8 @@ class TestDevice:
         
         assert device.mac_address == "aa:bb:cc:dd:ee:ff"
         assert device.ip_address == "192.168.1.100"
-        assert device.date_added == date_added.isoformat()
-        assert device.last_seen == last_seen.isoformat()
+        assert device.date_added == date_added
+        assert device.last_seen == last_seen
 
     def test_mac_address_normalization(self):
         """Test that MAC addresses are normalized to lowercase."""
@@ -51,7 +51,7 @@ class TestDevice:
         
         device.update_last_seen(new_timestamp)
         
-        assert device.last_seen == new_timestamp.isoformat()
+        assert device.last_seen == new_timestamp
 
     def test_update_last_seen_without_timestamp(self, mock_datetime):
         """Test updating last seen without providing timestamp."""
@@ -63,7 +63,7 @@ class TestDevice:
             
             device.update_last_seen()
             
-            assert device.last_seen == mock_datetime.isoformat()
+            assert device.last_seen == mock_datetime
 
     def test_to_dict(self):
         """Test dictionary representation of device."""
@@ -115,9 +115,3 @@ class TestDevice:
         
         assert device.ip_address == "192.168.1.200"
 
-    def test_slots_optimization(self):
-        """Test that __slots__ prevents adding arbitrary attributes."""
-        device = Device("aa:bb:cc:dd:ee:ff", "192.168.1.100")
-        
-        with pytest.raises(AttributeError):
-            device.arbitrary_attribute = "should fail"

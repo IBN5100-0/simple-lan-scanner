@@ -611,9 +611,11 @@ class ModernNetworkMonitorGUI(tk.Tk):
             ]):
                 continue
                 
-            # Format timestamps
-            first_seen = device.date_added.strftime("%Y-%m-%d %H:%M:%S")
-            last_seen = device.last_seen.strftime("%Y-%m-%d %H:%M:%S")
+            # Format timestamps - convert from UTC to local time
+            first_seen_local = device.date_added.replace(tzinfo=datetime.timezone.utc).astimezone()
+            last_seen_local = device.last_seen.replace(tzinfo=datetime.timezone.utc).astimezone()
+            first_seen = first_seen_local.strftime("%Y-%m-%d %H:%M:%S")
+            last_seen = last_seen_local.strftime("%Y-%m-%d %H:%M:%S")
             
             # Handle None values for display
             hostname = device.hostname or "-"

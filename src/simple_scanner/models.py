@@ -57,7 +57,10 @@ class Device:
             manufacturer = manufacturer[:25] + '...'
         manufacturer_str = f"{manufacturer:<28}"
         
-        first_seen_str = self.date_added.strftime("%Y-%m-%d %H:%M")
-        last_seen_str = self.last_seen.strftime("%Y-%m-%d %H:%M")
+        # Convert UTC to local time for display
+        first_seen_local = self.date_added.replace(tzinfo=datetime.timezone.utc).astimezone()
+        last_seen_local = self.last_seen.replace(tzinfo=datetime.timezone.utc).astimezone()
+        first_seen_str = first_seen_local.strftime("%Y-%m-%d %H:%M")
+        last_seen_str = last_seen_local.strftime("%Y-%m-%d %H:%M")
         
         return f"{mac_str} | {ip_str} | {hostname_str} | {manufacturer_str} | {first_seen_str} | {last_seen_str}"

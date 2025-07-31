@@ -17,12 +17,21 @@ class ModernSettingsDialog(tk.Toplevel):
     def __init__(self, parent: tk.Tk, settings: Dict[str, Any]) -> None:
         super().__init__(parent)
         self.title("Settings")
-        self.geometry("600x450")
+        self.geometry("600x500")
         self.resizable(False, False)
+        
+        # Configure window background
+        self.configure(bg='#f0f0f0')
         
         # Center the dialog
         self.transient(parent)
         self.grab_set()
+        
+        # Center on parent window
+        self.update_idletasks()
+        x = (parent.winfo_x() + (parent.winfo_width() // 2) - (600 // 2))
+        y = (parent.winfo_y() + (parent.winfo_height() // 2) - (500 // 2))
+        self.geometry(f"+{x}+{y}")
         
         self.settings = settings
         self.temp_settings = settings.copy()
@@ -51,13 +60,46 @@ class ModernSettingsDialog(tk.Toplevel):
         notebook.add(advanced_frame, text="Advanced")
         self._create_advanced_settings(advanced_frame)
         
-        # Buttons
-        button_frame = ttk.Frame(self, padding=10)
-        button_frame.pack(fill="x", side="bottom")
+        # Buttons with proper sizing
+        button_frame = ttk.Frame(self)
+        button_frame.pack(fill="x", side="bottom", pady=10)
         
-        ttk.Button(button_frame, text="Cancel", command=self.destroy).pack(side="right", padx=5)
-        ttk.Button(button_frame, text="Apply", command=self._apply_settings).pack(side="right")
-        ttk.Button(button_frame, text="OK", command=self._ok_settings).pack(side="right", padx=5)
+        # Style configuration for buttons with explicit colors
+        style = ttk.Style()
+        style.configure(
+            "Dialog.TButton", 
+            padding=(10, 5),
+            relief="raised",
+            borderwidth=2
+        )
+        
+        # Create buttons with explicit styling
+        cancel_btn = ttk.Button(
+            button_frame, 
+            text="Cancel", 
+            command=self.destroy, 
+            width=12,
+            style="Dialog.TButton"
+        )
+        cancel_btn.pack(side="right", padx=(5, 10), pady=5)
+        
+        apply_btn = ttk.Button(
+            button_frame, 
+            text="Apply", 
+            command=self._apply_settings, 
+            width=12,
+            style="Dialog.TButton"
+        )
+        apply_btn.pack(side="right", padx=5, pady=5)
+        
+        ok_btn = ttk.Button(
+            button_frame, 
+            text="OK", 
+            command=self._ok_settings, 
+            width=12,
+            style="Dialog.TButton"
+        )
+        ok_btn.pack(side="right", padx=(10, 5), pady=5)
         
     def _create_scan_settings(self, parent: ttk.Frame) -> None:
         """Create scan settings controls."""

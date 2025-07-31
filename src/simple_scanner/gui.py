@@ -163,12 +163,8 @@ class NetworkMonitorGUI(tk.Tk):
         # repopulate
         for idx, device in enumerate(sorted(devices, key=lambda x: x.ip_address)):
             tag = "even" if idx % 2 == 0 else "odd"
-            first = datetime.datetime.fromisoformat(device.date_added).strftime(
-                "%Y‑%m‑%d %H:%M:%S"
-            )
-            last = datetime.datetime.fromisoformat(device.last_seen).strftime(
-                "%Y‑%m‑%d %H:%M:%S"
-            )
+            first = device.date_added.strftime("%Y‑%m‑%d %H:%M:%S")
+            last = device.last_seen.strftime("%Y‑%m‑%d %H:%M:%S")
             self.tree.insert(
                 "",  # parent
                 "end",  # index

@@ -95,10 +95,11 @@ class NetworkMonitorGUI(tk.Tk):
             "json_path": tk.StringVar(value="devices.json"),
         }
 
-        ttk.Button(ctrl, text="Start", command=self.start).pack(side="left")
-        ttk.Button(ctrl, text="Stop", command=self.stop, state=tk.DISABLED).pack(
-            side="left"
-        )
+        # Store button references for easier access
+        self.start_btn = ttk.Button(ctrl, text="Start", command=self.start)
+        self.start_btn.pack(side="left")
+        self.stop_btn = ttk.Button(ctrl, text="Stop", command=self.stop, state=tk.DISABLED)
+        self.stop_btn.pack(side="left")
         ttk.Button(ctrl, text="Settings", command=self.open_settings).pack(side="right")
 
         self.monitor = NetworkMonitor()
@@ -124,22 +125,16 @@ class NetworkMonitorGUI(tk.Tk):
             os.remove(self.json_path)
 
         # enable / disable buttons
-        for btn in self.children["!frame"].winfo_children():  # type: ignore[index]
-            if btn.cget("text") == "Start":
-                btn.state(["disabled"])
-            if btn.cget("text") == "Stop":
-                btn.state(["!disabled"])
+        self.start_btn.state(["disabled"])
+        self.stop_btn.state(["!disabled"])
 
         self._running = True
         self._schedule()
 
     def stop(self) -> None:
         self._running = False
-        for btn in self.children["!frame"].winfo_children():  # type: ignore[index]
-            if btn.cget("text") == "Start":
-                btn.state(["!disabled"])
-            if btn.cget("text") == "Stop":
-                btn.state(["disabled"])
+        self.start_btn.state(["!disabled"])
+        self.stop_btn.state(["disabled"])
 
     # ----------------------------------------------------------------- #
     # internals
@@ -158,7 +153,7 @@ class NetworkMonitorGUI(tk.Tk):
         except Exception as exc:  # pragma: no cover
             messagebox.showerror("Error", str(exc))
 
-    def _refresh(self, devices) -> None:  # type: ignore[override]
+    def _refresh(self, devices: list) -> None:
         # clear existing rows
         for iid in self.tree.get_children():
             self.tree.delete(iid)
@@ -180,5 +175,10 @@ class NetworkMonitorGUI(tk.Tk):
             )
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Entry point for the GUI application."""
     NetworkMonitorGUI().mainloop()
+
+
+if __name__ == "__main__":
+    main()

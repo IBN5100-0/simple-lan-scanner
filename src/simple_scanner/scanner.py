@@ -8,10 +8,6 @@ from typing import Dict, List, Optional
 from .models import Device
 
 
-import ipaddress
-import socket
-
-
 def autodetect_network() -> str:
     """
     Return the most likely 'home‑LAN' /24 network, skipping
@@ -50,6 +46,10 @@ def autodetect_network() -> str:
 
 class NetworkMonitor:
     """Scans the network using nmap and tracks devices."""
+    
+    # Constants
+    MAC_LOOKAHEAD_LINES = 4  # How many lines to look ahead for MAC address
+    NMAP_TIMEOUT_SECONDS = 300  # 5 minute timeout for nmap scans
 
     HOST_REGEX = re.compile(
         r"^Nmap scan report for (?:[\w.-]+ )?\(?(?P<ip>\d+\.\d+\.\d+\.\d+)\)?"
@@ -79,9 +79,24 @@ class NetworkMonitor:
     def _run_command(self) -> str:
         """Run nmap ping scan on the target network and return its output."""
         cmd = [self._nmap_path, '-sn', self.network]
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        try:
+            result = subprocess.run(
+                cmd, 
+                capture_output=True, 
+                text=True, 
+                timeout=self.NMAP_TIMEOUT_SECONDS,
+                check=False
+            )
+        except subprocess.TimeoutExpired as e:
+            raise RuntimeError(f"Nmap scan timed out after {self.NMAP_TIMEOUT_SECONDS} seconds") from e
+        except FileNotFoundError as e:
+            raise RuntimeError(f"Nmap executable not found: {self._nmap_path}") from e
+        except PermissionError as e:
+            raise RuntimeError(f"Permission denied running nmap: {self._nmap_path}") from e
+        
         if result.returncode != 0:
-            raise RuntimeError(f"Nmap scan failed: {result.stderr.strip()}")
+            error_msg = result.stderr.strip() if result.stderr else "Unknown error"
+            raise RuntimeError(f"Nmap scan failed (exit code {result.returncode}): {error_msg}")
         return result.stdout
 
     def _parse(self, raw: str) -> None:
@@ -97,7 +112,7 @@ class NetworkMonitor:
             mac: Optional[str] = None
 
             # Look ahead for MAC Address line
-            for j in range(i+1, min(i+5, len(lines))):
+            for j in range(i+1, min(i+1+self.MAC_LOOKAHEAD_LINES, len(lines))):
                 mac_match = self.MAC_REGEX.match(lines[j])
                 if mac_match:
                     mac = mac_match.group('mac').lower()

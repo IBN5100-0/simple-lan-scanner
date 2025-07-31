@@ -89,3 +89,17 @@ def monitor(
     except Exception as exc:
         click.secho(f"Error: {exc}", fg="red", err=True)
         raise SystemExit(1)
+
+
+@app.command(help="Launch the GUI application")
+def gui() -> None:
+    """Launch the graphical user interface."""
+    try:
+        from .gui import main
+        main()
+    except ImportError as e:
+        click.secho("GUI dependencies not available. Install with: pip install tkinter", fg="red", err=True)
+        raise SystemExit(1) from e
+    except Exception as exc:
+        click.secho(f"GUI Error: {exc}", fg="red", err=True)
+        raise SystemExit(1)

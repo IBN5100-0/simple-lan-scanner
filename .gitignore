@@ -2,6 +2,7 @@ devices.csv
 devices.json
 .idea/
 __pycache__/
+CLAUDE.md
 
 simple_lan_scanner.egg-info
 

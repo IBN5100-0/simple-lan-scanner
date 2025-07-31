@@ -408,11 +408,11 @@ class ModernNetworkMonitorGUI(tk.Tk):
         self.paned.add(list_frame, weight=3)
         
         # Configure treeview
-        columns = ("MAC Address", "IP Address", "First Seen", "Last Seen", "Status")
+        columns = ("MAC Address", "IP Address", "Hostname", "Manufacturer", "First Seen", "Last Seen", "Status")
         self.tree = ttk.Treeview(list_frame, columns=columns, show="headings", height=20)
         
         # Column configuration
-        widths = [150, 120, 180, 180, 80]
+        widths = [140, 110, 150, 150, 150, 150, 60]
         for col, width in zip(columns, widths):
             self.tree.heading(col, text=col, command=lambda c=col: self._sort_tree(c))
             self.tree.column(col, width=width)
@@ -535,14 +535,18 @@ class ModernNetworkMonitorGUI(tk.Tk):
         displayed = 0
         for device in sorted(self._devices_cache, key=lambda d: d.ip_address):
             # Check if device matches search
-            if search and not any(search in str(val).lower() for val in [
-                device.mac_address, device.ip_address
+            if search and not any(search in str(val).lower() if val else "" for val in [
+                device.mac_address, device.ip_address, device.hostname, device.manufacturer
             ]):
                 continue
                 
             # Format timestamps
             first_seen = device.date_added.strftime("%Y-%m-%d %H:%M:%S")
             last_seen = device.last_seen.strftime("%Y-%m-%d %H:%M:%S")
+            
+            # Handle None values for display
+            hostname = device.hostname or "-"
+            manufacturer = device.manufacturer or "-"
             
             # Determine status and tags
             now = datetime.datetime.now(datetime.timezone.utc)
@@ -561,6 +565,8 @@ class ModernNetworkMonitorGUI(tk.Tk):
             self.tree.insert("", "end", values=(
                 device.mac_address,
                 device.ip_address,
+                hostname,
+                manufacturer,
                 first_seen,
                 last_seen,
                 status

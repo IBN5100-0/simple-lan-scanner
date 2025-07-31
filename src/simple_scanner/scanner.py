@@ -71,11 +71,13 @@ class NetworkMonitor:
     MAC_LOOKAHEAD_LINES = 4  # How many lines to look ahead for MAC address
     NMAP_TIMEOUT_SECONDS = 300  # 5 minute timeout for nmap scans
 
+    # Updated regex to capture hostname if present
     HOST_REGEX = re.compile(
-        r"^Nmap scan report for (?:[\w.-]+ )?\(?(?P<ip>\d+\.\d+\.\d+\.\d+)\)?"
+        r"^Nmap scan report for (?:(?P<hostname>[\w.-]+) \()?(?P<ip>\d+\.\d+\.\d+\.\d+)\)?"
     )
+    # Updated regex to capture MAC and manufacturer
     MAC_REGEX = re.compile(
-        r"^MAC Address: (?P<mac>(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2})"
+        r"^MAC Address: (?P<mac>(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2})(?: \((?P<manufacturer>[^)]+)\))?"
     )
 
     def __init__(
@@ -138,10 +140,19 @@ class NetworkMonitor:
             for device_data in data:
                 mac = device_data['mac_address'].lower()
                 ip = device_data['ip_address']
+                hostname = device_data.get('hostname')  # May not exist in old data
+                manufacturer = device_data.get('manufacturer')  # May not exist in old data
                 date_added = datetime.datetime.fromisoformat(device_data['date_added'])
                 last_seen = datetime.datetime.fromisoformat(device_data['last_seen'])
                 
-                self._devices[mac] = Device(mac, ip, date_added, last_seen)
+                self._devices[mac] = Device(
+                    mac_address=mac,
+                    ip_address=ip,
+                    hostname=hostname,
+                    manufacturer=manufacturer,
+                    date_added=date_added,
+                    last_seen=last_seen
+                )
                 
             if self.verbose:
                 print(f"Loaded {len(self._devices)} existing devices from {core_file}")
@@ -156,6 +167,9 @@ class NetworkMonitor:
             return
             
         core_file = get_core_data_file()
+        # Ensure parent directory exists
+        core_file.parent.mkdir(parents=True, exist_ok=True)
+        
         data = [d.to_dict() for d in self.devices()]
         
         try:
@@ -175,13 +189,16 @@ class NetworkMonitor:
             if not host_match:
                 continue
             ip = host_match.group('ip')
+            hostname = host_match.group('hostname')  # May be None
             mac: Optional[str] = None
+            manufacturer: Optional[str] = None
 
             # Look ahead for MAC Address line
             for j in range(i+1, min(i+1+self.MAC_LOOKAHEAD_LINES, len(lines))):
                 mac_match = self.MAC_REGEX.match(lines[j])
                 if mac_match:
                     mac = mac_match.group('mac').lower()
+                    manufacturer = mac_match.group('manufacturer')  # May be None
                     break
 
             if not mac:
@@ -193,9 +210,22 @@ class NetworkMonitor:
                 self._devices[mac].update_last_seen(now)
                 # Update IP in case it changed (DHCP)
                 self._devices[mac].update_ip_address(ip)
+                # Update hostname if found
+                if hostname:
+                    self._devices[mac].update_hostname(hostname)
+                # Update manufacturer if found
+                if manufacturer:
+                    self._devices[mac].update_manufacturer(manufacturer)
             else:
                 # New device - set both timestamps to now
-                self._devices[mac] = Device(mac, ip, now, now)
+                self._devices[mac] = Device(
+                    mac_address=mac,
+                    ip_address=ip,
+                    hostname=hostname,
+                    manufacturer=manufacturer,
+                    date_added=now,
+                    last_seen=now
+                )
 
         if self.remove_stale:
             stale = [m for m in self._devices if m not in seen_macs]
@@ -225,7 +255,7 @@ class NetworkMonitor:
 
     def to_csv(self, path: str) -> None:
         import csv
-        fieldnames = ['mac_address', 'ip_address', 'date_added', 'last_seen']
+        fieldnames = ['mac_address', 'ip_address', 'hostname', 'manufacturer', 'date_added', 'last_seen']
         with open(path, 'w', newline='', encoding='utf-8') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()

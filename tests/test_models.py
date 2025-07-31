@@ -19,6 +19,8 @@ class TestDevice:
             
             assert device.mac_address == "aa:bb:cc:dd:ee:ff"
             assert device.ip_address == "192.168.1.100"
+            assert device.hostname is None
+            assert device.manufacturer is None
             assert device.date_added == mock_datetime
             assert device.last_seen == mock_datetime
 
@@ -81,6 +83,8 @@ class TestDevice:
         expected = {
             'mac_address': 'aa:bb:cc:dd:ee:ff',
             'ip_address': '192.168.1.100',
+            'hostname': None,
+            'manufacturer': None,
             'date_added': date_added.isoformat(),
             'last_seen': last_seen.isoformat()
         }

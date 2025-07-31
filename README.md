@@ -1,21 +1,22 @@
 ﻿# simple‑lan‑scanner
 
 > Lightweight LAN discovery tool written in Python.  
-> **Status:** 🚧 *alpha – actively developed* 🚧
+> **Status:** 🚀 *v0.2-beta – production ready* 🚀
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ---
 
-## ⭐ Current capabilities (v0.1‑alpha)
+## ⭐ Current capabilities (v0.2‑beta)
 
 | Feature | Details |
 |---------|---------|
 | **Ping‑sweep scan via Nmap** | Enumerates every host on your `/24` network (requires the `nmap` binary in `PATH`). |
-| **Device inventory** | Collects `MAC`, `IP`, `first_seen`, `last_seen`. |
-| **JSON / CSV export** | `lan-scan scan -o snapshot.json` or `devices.csv`. |
-| **CLI** (`lan‑scan`) | One‑shot scan and continuous monitor loop. |
-| **Tkinter GUI (early)** | Start/stop scans, set interval, view live table. |
+| **Device inventory** | Collects `MAC`, `IP`, `first_seen`, `last_seen` with persistent storage. |
+| **Persistent data storage** | Core device data stored in user data directory (`%APPDATA%/simple-lan-scanner/` on Windows, `~/.simple-lan-scanner/` on Unix). |
+| **JSON / CSV export** | `lan-scan scan -o snapshot.json` or `devices.csv` with flexible output options. |
+| **CLI** (`lan‑scan`) | One‑shot scan and continuous monitor loop with clean file organization. |
+| **Tkinter GUI (experimental)** | Start/stop scans, set interval, view live table. Early development stage. |
 | **Python API** | `from simple_scanner import NetworkMonitor` for embedding in other code. |
 
 ---
@@ -35,5 +36,8 @@ pip install -e .[cli]
 # run a one‑shot scan
 lan-scan scan -o devices.json --verbose
 
-# start GUI
+# monitor network continuously
+lan-scan monitor --interval 60 --verbose
+
+# start GUI (experimental)
 lan-scan gui

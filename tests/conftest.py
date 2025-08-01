@@ -2,6 +2,7 @@
 
 import pytest
 import datetime
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -44,7 +45,13 @@ def temp_output_file(tmp_path):
 @pytest.fixture
 def mock_nmap_executable():
     """Mock nmap executable path."""
-    with patch('shutil.which', return_value='C:\\Program Files\\Nmap\\nmap.exe'):
+    # Use platform-appropriate path
+    if sys.platform == 'win32':
+        nmap_path = 'C:\\Program Files\\Nmap\\nmap.exe'
+    else:
+        nmap_path = '/usr/bin/nmap'
+    
+    with patch('shutil.which', return_value=nmap_path):
         yield
 
 

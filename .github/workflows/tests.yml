@@ -36,7 +36,8 @@ jobs:
       if: matrix.os == 'windows-latest'
       run: |
         choco install nmap -y
-        echo "C:\Program Files (x86)\Nmap" >> $GITHUB_PATH
+        echo "C:\Program Files (x86)\Nmap" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      shell: pwsh
     
     - name: Install dependencies
       run: |
@@ -48,20 +49,25 @@ jobs:
       continue-on-error: true
       run: |
         nmap --version || echo "nmap not found in PATH"
-        which nmap || echo "nmap not found" 
+        if [[ "${{ runner.os }}" == "Windows" ]]; then
+          where nmap || echo "nmap not found (Windows)"
+        else
+          which nmap || echo "nmap not found"
+        fi
       shell: bash
     
     - name: Debug environment
       run: |
         echo "Current directory: $(pwd)"
         echo "Directory contents:"
-        ls -la
+        ls
         echo "Tests directory:"
-        ls -la tests/ || echo "tests directory not found"
+        if [ -d "tests" ]; then ls tests/; else echo "tests directory not found"; fi
         echo "Python path:"
         python -c "import sys; print('\n'.join(sys.path))"
         echo "Installed packages:"
         pip list
+      shell: bash
     
     - name: Run tests
       run: |

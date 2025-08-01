@@ -9,9 +9,11 @@
 
 > 🔍 A powerful yet simple network scanner for discovering devices on your local network
 
+<!-- Screenshot placeholder - add actual screenshot here
 <p align="center">
-  <img src="https://via.placeholder.com/600x400/1a1a1a/00ff00?text=Simple+LAN+Scanner" alt="Simple LAN Scanner Demo" />
+  <img src="docs/images/screenshot.png" alt="Simple LAN Scanner Demo" />
 </p>
+-->
 
 ## ✨ Features
 

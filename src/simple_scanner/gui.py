@@ -343,6 +343,20 @@ class ModernNetworkMonitorGUI(tk.Tk):
         self.title("LAN Scanner")
         self.geometry("1200x700")
         
+        # Set window icon
+        try:
+            icon_path = Path(__file__).parent.parent.parent / "assets" / "icon.ico"
+            if icon_path.exists():
+                self.iconbitmap(str(icon_path))
+            else:
+                # Try PNG format for cross-platform compatibility
+                icon_path = Path(__file__).parent.parent.parent / "assets" / "icon.png"
+                if icon_path.exists():
+                    photo = tk.PhotoImage(file=str(icon_path))
+                    self.iconphoto(True, photo)
+        except Exception:
+            pass  # Silently fail if icon can't be loaded
+        
         # Set modern theme
         style = ttk.Style(self)
         style.theme_use("clam")

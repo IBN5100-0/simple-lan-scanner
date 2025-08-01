@@ -7,13 +7,15 @@
 [![Requires nmap](https://img.shields.io/badge/requires-nmap-orange.svg)](https://nmap.org/)
 [![Documentation](https://img.shields.io/badge/docs-latest-brightgreen)](docs/DOCUMENTATION.md)
 
+<p align="left">
+  <img src="assets/icon-hires.png" alt="Simple LAN Scanner Logo" width="256" height="256">
+</p>
+
 > 🔍 A powerful yet simple network scanner for discovering devices on your local network
 
-<!-- Screenshot placeholder - add actual screenshot here
 <p align="center">
-  <img src="docs/images/screenshot.png" alt="Simple LAN Scanner Demo" />
+  <img src="docs/images/gui-screenshot.png" alt="Simple LAN Scanner GUI" width="900">
 </p>
--->
 
 ## ✨ Features
 
@@ -63,7 +65,19 @@ lan-scan scan -o devices.json
 
 ## 📸 Screenshots
 
+### GUI Interface
+
+<p align="center">
+  <img src="docs/images/gui-main-window.png" alt="GUI Main Window" width="800">
+</p>
+
 ### CLI Interface
+
+<p align="center">
+  <img src="docs/images/cli-screenshot.png" alt="CLI Output Example" width="800">
+</p>
+
+Example output:
 ```
 MAC Address       | IP Address      | Hostname                  | Manufacturer               | First Seen       | Last Seen
 ------------------------------------------------------------------------------------------------------------------------------------------------

@@ -3,5 +3,5 @@
 from .scanner import NetworkMonitor, autodetect_network
 from .models import Device
 
-__version__ = "0.2.0b1"
+__version__ = "1.0.0"
 __all__ = ["NetworkMonitor", "Device", "autodetect_network"]

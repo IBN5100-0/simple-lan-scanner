@@ -1,0 +1,22 @@
+# This file defines code ownership for automatic review requests
+
+# Global owners (will be requested for review on all changes)
+* @IBN5100-0
+
+# Documentation
+/docs/ @IBN5100-0
+*.md @IBN5100-0
+
+# Core functionality
+/src/simple_scanner/scanner.py @IBN5100-0
+/src/simple_scanner/models.py @IBN5100-0
+
+# User interfaces
+/src/simple_scanner/cli.py @IBN5100-0
+/src/simple_scanner/gui.py @IBN5100-0
+
+# Tests
+/tests/ @IBN5100-0
+
+# CI/CD
+/.github/ @IBN5100-0

@@ -1,0 +1,6 @@
+# Core dependency
+click>=8.1.0
+
+# Note: This file is mainly for users who prefer requirements.txt
+# The authoritative dependency list is in pyproject.toml
+# To install: pip install -e .[cli]

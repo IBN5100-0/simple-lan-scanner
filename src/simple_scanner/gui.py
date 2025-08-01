@@ -360,6 +360,7 @@ class ModernNetworkMonitorGUI(tk.Tk):
         self._devices_cache: list[Device] = []
         self._last_device_count = 0
         self.monitor: Optional[NetworkMonitor] = None
+        self.online_only_var = tk.BooleanVar(value=False)
         
         self._create_menu()
         self._create_toolbar()
@@ -420,6 +421,7 @@ class ModernNetworkMonitorGUI(tk.Tk):
         
         # Quick actions
         ttk.Button(toolbar, text="🔄 Refresh", command=self._manual_refresh, width=10).pack(side="left", padx=2)
+        ttk.Button(toolbar, text="📷 Scan Once", command=self._one_shot_scan, width=12).pack(side="left", padx=2)
         ttk.Button(toolbar, text="⚙ Settings", command=self._open_settings, width=10).pack(side="left", padx=2)
         
         ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=10)
@@ -430,6 +432,11 @@ class ModernNetworkMonitorGUI(tk.Tk):
         self.search_var.trace("w", lambda *args: self._filter_devices())
         search_entry = ttk.Entry(toolbar, textvariable=self.search_var, width=30)
         search_entry.pack(side="left", padx=2)
+        
+        # Online filter  
+        ttk.Separator(toolbar, orient="vertical").pack(side="right", fill="y", padx=10)
+        self.online_only_var.trace("w", lambda *args: self._filter_devices())
+        ttk.Checkbutton(toolbar, text="Online only", variable=self.online_only_var).pack(side="right", padx=5)
         
         # Device count
         self.device_count_label = ttk.Label(toolbar, text="0 devices")
@@ -472,6 +479,9 @@ class ModernNetworkMonitorGUI(tk.Tk):
         self.tree.tag_configure("online", foreground="green")
         self.tree.tag_configure("new", background="#e6ffe6")
         self.tree.tag_configure("changed", background="#fff0e6")
+        
+        # Right-click context menu
+        self.tree.bind("<Button-3>", self._show_context_menu)
         
         # Right: Details panel (hidden by default)
         self.details_frame = ttk.Frame(self.paned)
@@ -602,6 +612,9 @@ class ModernNetworkMonitorGUI(tk.Tk):
         # Get search term
         search = self.search_var.get().lower()
         
+        # Get current time for online status
+        now = datetime.datetime.now(datetime.timezone.utc)
+        
         # Filter and display devices
         displayed = 0
         for device in sorted(self._devices_cache, key=lambda d: d.ip_address):
@@ -609,6 +622,10 @@ class ModernNetworkMonitorGUI(tk.Tk):
             if search and not any(search in str(val).lower() if val else "" for val in [
                 device.mac_address, device.ip_address, device.hostname, device.manufacturer
             ]):
+                continue
+            
+            # Filter online-only if requested
+            if self.online_only_var.get() and (now - device.last_seen).seconds >= 120:
                 continue
                 
             # Format timestamps - convert from UTC to local time
@@ -622,7 +639,6 @@ class ModernNetworkMonitorGUI(tk.Tk):
             manufacturer = device.manufacturer or "-"
             
             # Determine status and tags
-            now = datetime.datetime.now(datetime.timezone.utc)
             if (now - device.last_seen).seconds < 120:
                 status = "Online"
                 tags = ("online",)
@@ -653,12 +669,16 @@ class ModernNetworkMonitorGUI(tk.Tk):
             ), tags=tags)
             displayed += 1
             
-        # Update count
+        # Update count with online status
         total = len(self._devices_cache)
-        if displayed < total:
-            self.device_count_label.config(text=f"{displayed} of {total} devices")
+        online_total = sum(1 for d in self._devices_cache if (now - d.last_seen).seconds < 120)
+        
+        if self.online_only_var.get():
+            self.device_count_label.config(text=f"{displayed} online devices")
+        elif displayed < total:
+            self.device_count_label.config(text=f"{displayed} of {total} devices ({online_total} online)")
         else:
-            self.device_count_label.config(text=f"{total} devices")
+            self.device_count_label.config(text=f"{total} devices ({online_total} online)")
         
         # Store count for new device notifications
         self._last_device_count = displayed
@@ -766,6 +786,117 @@ class ModernNetworkMonitorGUI(tk.Tk):
                 json.dump(self.settings, f, indent=2)
         except Exception as e:
             print(f"Failed to save settings: {e}")
+    
+    def _one_shot_scan(self) -> None:
+        """Perform a single scan and save to timestamped file."""
+        if not self.monitor:
+            messagebox.showerror("Error", "Monitor not initialized")
+            return
+            
+        try:
+            # Show progress
+            self.status_label.config(text="Performing one-shot scan...", style="Status.TLabel")
+            self.progress.pack(side="left", padx=10, pady=2)
+            self.progress.start(10)
+            
+            # Perform scan in background
+            def do_scan():
+                self.monitor.scan()
+                
+                # Save to timestamped file
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                json_file = f"devices_{timestamp}.json"
+                self.monitor.to_json(json_file)
+                
+                self.after(0, lambda: self._update_device_list())
+                self.after(0, lambda: self.progress.stop())
+                self.after(0, lambda: self.progress.pack_forget())
+                self.after(0, lambda: self.status_label.config(
+                    text=f"Scan complete. Saved to {json_file}", 
+                    style="Success.TLabel"
+                ))
+                self.after(0, lambda: messagebox.showinfo(
+                    "Scan Complete", 
+                    f"One-shot scan completed.\nResults saved to: {json_file}"
+                ))
+                
+            threading.Thread(target=do_scan, daemon=True).start()
+            
+        except Exception as e:
+            self.progress.stop()
+            self.progress.pack_forget()
+            messagebox.showerror("Scan Error", str(e))
+            self.status_label.config(text=f"Error: {e}", style="Error.TLabel")
+    
+    def _show_context_menu(self, event: tk.Event) -> None:
+        """Show context menu for device actions."""
+        # Select the item under cursor
+        item = self.tree.identify_row(event.y)
+        if not item:
+            return
+            
+        self.tree.selection_set(item)
+        
+        # Create context menu
+        menu = tk.Menu(self, tearoff=0)
+        menu.add_command(label="Copy MAC Address", command=lambda: self._copy_device_info("MAC Address"))
+        menu.add_command(label="Copy IP Address", command=lambda: self._copy_device_info("IP Address"))
+        menu.add_command(label="Copy Hostname", command=lambda: self._copy_device_info("Hostname"))
+        menu.add_separator()
+        menu.add_command(label="Copy All Info", command=self._copy_all_device_info)
+        
+        # Show menu
+        menu.tk_popup(event.x_root, event.y_root)
+        menu.grab_release()
+    
+    def _copy_device_info(self, column: str) -> None:
+        """Copy specific device information to clipboard."""
+        selection = self.tree.selection()
+        if not selection:
+            return
+            
+        item = self.tree.item(selection[0])
+        values = item['values']
+        
+        # Map column name to index
+        columns = ("MAC Address", "IP Address", "Hostname", "Manufacturer", "First Seen", "Last Seen", "Status")
+        try:
+            idx = columns.index(column)
+            value = values[idx]
+            
+            # Copy to clipboard
+            self.clipboard_clear()
+            self.clipboard_append(str(value))
+            self.update()
+            
+            self.status_label.config(text=f"Copied {column} to clipboard", style="Success.TLabel")
+        except (ValueError, IndexError):
+            pass
+    
+    def _copy_all_device_info(self) -> None:
+        """Copy all device information to clipboard."""
+        selection = self.tree.selection()
+        if not selection:
+            return
+            
+        item = self.tree.item(selection[0])
+        values = item['values']
+        
+        # Format all info
+        info = f"""MAC Address: {values[0]}
+IP Address: {values[1]}
+Hostname: {values[2]}
+Manufacturer: {values[3]}
+First Seen: {values[4]}
+Last Seen: {values[5]}
+Status: {values[6]}"""
+        
+        # Copy to clipboard
+        self.clipboard_clear()
+        self.clipboard_append(info)
+        self.update()
+        
+        self.status_label.config(text="Copied device info to clipboard", style="Success.TLabel")
     
     def _on_close(self) -> None:
         """Handle window close."""

@@ -57,6 +57,8 @@ def scan(out: str | None, network: str | None, verbose: bool, remove_stale: bool
 @click.option("--csv",  "csv_path",  type=click.Path(dir_okay=False))
 @click.option("--verbose", is_flag=True)
 @click.option("--remove-stale", is_flag=True)
+@click.option("--online-only", is_flag=True, help="Show only online devices")
+@click.option("--search", help="Filter devices by MAC, IP, hostname, or manufacturer")
 def monitor(
     interval: int,
     network: str | None,
@@ -64,6 +66,8 @@ def monitor(
     csv_path: str | None,
     verbose: bool,
     remove_stale: bool,
+    online_only: bool,
+    search: str | None,
 ) -> None:
     # Only create output files if explicitly requested (no defaults)
 
@@ -77,13 +81,44 @@ def monitor(
             
             # Display devices in a formatted table
             devices = nm.devices()
+            
+            # Filter by search term if provided
+            if search:
+                search_lower = search.lower()
+                devices = [d for d in devices if any(
+                    search_lower in str(getattr(d, attr, "") or "").lower() 
+                    for attr in ["mac_address", "ip_address", "hostname", "manufacturer"]
+                )]
+            
+            # Filter online-only if requested
+            if online_only:
+                from datetime import datetime, timezone
+                now = datetime.now(timezone.utc)
+                devices = [d for d in devices if (now - d.last_seen).total_seconds() < 120]
+            
             if devices:
+                # Count online devices
+                from datetime import datetime, timezone
+                now = datetime.now(timezone.utc)
+                online_count = sum(1 for d in devices if (now - d.last_seen).total_seconds() < 120)
+                
                 click.echo("\n" + nm.get_device_header())
                 for d in sorted(devices, key=lambda x: x.ip_address):
-                    click.echo(d)
-                click.echo(f"\nTotal devices: {len(devices)}")
+                    # Add status indicator
+                    if (now - d.last_seen).total_seconds() < 120:
+                        click.echo(click.style(str(d), fg="green"))
+                    else:
+                        click.echo(d)
+                
+                if online_only:
+                    click.echo(f"\nOnline devices: {len(devices)}")
+                else:
+                    click.echo(f"\nTotal devices: {len(devices)} ({online_count} online)")
             else:
-                click.echo("No devices found.")
+                if search:
+                    click.echo(f"No devices found matching '{search}'.")
+                else:
+                    click.echo("No devices found.")
             
             # Save to user-specified output files
             if json_path:

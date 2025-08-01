@@ -7,7 +7,6 @@ import shutil
 import json
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
 from .models import Device
 
 
@@ -82,7 +81,7 @@ class NetworkMonitor:
 
     def __init__(
         self,
-        network: Optional[str] = None,
+        network: str | None = None,
         remove_stale: bool = False,
         verbose: bool = False,
         use_persistence: bool = True,
@@ -91,7 +90,7 @@ class NetworkMonitor:
         self.remove_stale = remove_stale
         self.verbose = verbose
         self.use_persistence = use_persistence
-        self._devices: Dict[str, Device] = {}
+        self._devices: dict[str, Device] = {}
 
         # Locate nmap executable
         self._nmap_path = shutil.which('nmap')
@@ -190,8 +189,8 @@ class NetworkMonitor:
                 continue
             ip = host_match.group('ip')
             hostname = host_match.group('hostname')  # May be None
-            mac: Optional[str] = None
-            manufacturer: Optional[str] = None
+            mac: str | None = None
+            manufacturer: str | None = None
 
             # Look ahead for MAC Address line
             for j in range(i+1, min(i+1+self.MAC_LOOKAHEAD_LINES, len(lines))):
@@ -243,7 +242,7 @@ class NetworkMonitor:
             print(raw)
         self._parse(raw)
 
-    def devices(self) -> List[Device]:
+    def devices(self) -> list[Device]:
         """Return list of tracked devices."""
         return list(self._devices.values())
     

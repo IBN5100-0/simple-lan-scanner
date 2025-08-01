@@ -1,7 +1,8 @@
 # Simple LAN Scanner
 
+[![CI](https://github.com/IBN5100-0/simple-lan-scanner/actions/workflows/tests.yml/badge.svg)](https://github.com/IBN5100-0/simple-lan-scanner/actions/workflows/tests.yml)
 [![PyPI](https://img.shields.io/pypi/v/simple-lan-scanner.svg)](https://pypi.org/project/simple-lan-scanner/)
-[![Python](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Requires nmap](https://img.shields.io/badge/requires-nmap-orange.svg)](https://nmap.org/)
 [![Documentation](https://img.shields.io/badge/docs-latest-brightgreen)](docs/DOCUMENTATION.md)
@@ -41,7 +42,7 @@ pip install -e .[cli]
 
 ### Requirements
 
-- Python 3.8+
+- Python 3.10+
 - [nmap](https://nmap.org/download.html) installed and in PATH
 
 ### Basic Usage

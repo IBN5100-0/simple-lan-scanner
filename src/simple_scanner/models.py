@@ -1,14 +1,13 @@
 import datetime
 from dataclasses import dataclass, field
-from typing import Optional
 
 @dataclass
 class Device:
     """Represents a network device discovered via nmap ping scan."""
     mac_address: str
     ip_address: str
-    hostname: Optional[str] = None
-    manufacturer: Optional[str] = None
+    hostname: str | None = None
+    manufacturer: str | None = None
     date_added: datetime.datetime = field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
     last_seen: datetime.datetime = field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
 
@@ -16,18 +15,18 @@ class Device:
         """Normalize MAC address to lowercase."""
         self.mac_address = self.mac_address.lower()
 
-    def update_last_seen(self, timestamp: Optional[datetime.datetime] = None) -> None:
+    def update_last_seen(self, timestamp: datetime.datetime | None = None) -> None:
         self.last_seen = timestamp or datetime.datetime.now(datetime.timezone.utc)
     
     def update_ip_address(self, ip_address: str) -> None:
         """Update the IP address (useful for DHCP changes)."""
         self.ip_address = ip_address
     
-    def update_hostname(self, hostname: Optional[str]) -> None:
+    def update_hostname(self, hostname: str | None) -> None:
         """Update the hostname."""
         self.hostname = hostname
     
-    def update_manufacturer(self, manufacturer: Optional[str]) -> None:
+    def update_manufacturer(self, manufacturer: str | None) -> None:
         """Update the manufacturer."""
         self.manufacturer = manufacturer
 

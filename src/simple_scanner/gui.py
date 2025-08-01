@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import datetime
 import threading
-from typing import Optional, Dict, Any
+from typing import Any
 import os
 import json
 from pathlib import Path
@@ -16,7 +16,7 @@ from .models import Device
 class ModernSettingsDialog(tk.Toplevel):
     """Modern settings dialog with tabs and better organization."""
     
-    def __init__(self, parent: tk.Tk, settings: Dict[str, Any]) -> None:
+    def __init__(self, parent: tk.Tk, settings: dict[str, Any]) -> None:
         super().__init__(parent)
         self.title("Settings")
         self.geometry("600x500")
@@ -359,7 +359,7 @@ class ModernNetworkMonitorGUI(tk.Tk):
         self._running = False
         self._devices_cache: list[Device] = []
         self._last_device_count = 0
-        self.monitor: Optional[NetworkMonitor] = None
+        self.monitor: NetworkMonitor | None = None
         self.online_only_var = tk.BooleanVar(value=False)
         
         self._create_menu()
@@ -746,7 +746,7 @@ class ModernNetworkMonitorGUI(tk.Tk):
                            "A modern network discovery tool\n\n"
                            "Built with Python and Tkinter")
         
-    def _load_settings(self) -> Dict[str, Any]:
+    def _load_settings(self) -> dict[str, Any]:
         """Load settings from disk or return defaults."""
         settings_file = get_user_data_dir() / "gui_settings.json"
         

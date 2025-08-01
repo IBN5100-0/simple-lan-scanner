@@ -2,7 +2,7 @@
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/IBN5100-0/simple-lan-scanner/releases/tag/v1.0.0)
-[![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![nmap required](https://img.shields.io/badge/requires-nmap-orange.svg)](https://nmap.org/)
 
 ## Table of Contents
@@ -53,7 +53,7 @@ The tool leverages the power of nmap for accurate network scanning while providi
 
 ### Prerequisites
 
-1. **Python 3.7 or higher**
+1. **Python 3.10 or higher**
    ```bash
    python --version  # Verify Python installation
    ```

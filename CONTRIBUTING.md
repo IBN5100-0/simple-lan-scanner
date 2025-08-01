@@ -62,7 +62,7 @@ If applicable, add screenshots to help explain your problem.
 
 **Environment:**
  - OS: [e.g. Windows 10, Ubuntu 22.04]
- - Python Version: [e.g. 3.9.7]
+ - Python Version: [e.g. 3.10.0 or higher]
  - nmap Version: [e.g. 7.92]
  - Simple LAN Scanner Version: [e.g. 1.0.0]
 

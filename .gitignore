@@ -1,5 +1,7 @@
 devices.csv
 devices.json
+devices_*.json
+devices_*.csv
 .idea/
 __pycache__/
 CLAUDE.md

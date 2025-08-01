@@ -135,11 +135,15 @@ class TestDeviceHostnameManufacturer:
         
         result = str(device)
         
-        assert "MAC: aa:bb:cc:dd:ee:ff" in result
-        assert "IP: 192.168.1.100" in result
-        assert "Hostname: router.home" in result
-        assert "Manufacturer: Netgear" in result
-        assert now.isoformat() in result
+        # Check the table-like format
+        assert "aa:bb:cc:dd:ee:ff" in result
+        assert "192.168.1.100" in result
+        assert "router.home" in result
+        assert "Netgear" in result
+        assert " | " in result  # Check for separator
+        # Check date format (YYYY-MM-DD HH:MM)
+        import re
+        assert re.search(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}', result) is not None
 
     def test_str_representation_minimal_fields(self):
         """Test string representation with minimal fields."""
@@ -147,10 +151,14 @@ class TestDeviceHostnameManufacturer:
         
         result = str(device)
         
-        assert "MAC: aa:bb:cc:dd:ee:ff" in result
-        assert "IP: 192.168.1.100" in result
-        assert "Hostname:" not in result  # Should not include if None
-        assert "Manufacturer:" not in result  # Should not include if None
+        # Check the table-like format
+        assert "aa:bb:cc:dd:ee:ff" in result
+        assert "192.168.1.100" in result
+        assert " | " in result  # Check for separator
+        assert "-" in result  # Default value for hostname/manufacturer
+        # Check date format (YYYY-MM-DD HH:MM)
+        import re
+        assert re.search(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}', result) is not None
 
     def test_str_representation_partial_fields(self):
         """Test string representation with some optional fields."""
@@ -162,8 +170,15 @@ class TestDeviceHostnameManufacturer:
         
         result = str(device)
         
-        assert "Hostname:" not in result
-        assert "Manufacturer: Unknown" in result
+        # Check the table-like format
+        assert "aa:bb:cc:dd:ee:ff" in result
+        assert "192.168.1.100" in result
+        assert "Unknown" in result
+        assert " | " in result  # Check for separator
+        # Should have a '-' for hostname since it's None
+        parts = result.split(" | ")
+        assert len(parts) >= 6  # MAC, IP, hostname, manufacturer, first_seen, last_seen
+        assert parts[2].strip() == "-"  # hostname should be '-'
 
     def test_mac_address_case_normalization(self):
         """Test that MAC addresses are normalized to lowercase."""

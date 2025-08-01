@@ -104,12 +104,15 @@ class TestDevice:
         )
         
         result = str(device)
-        expected = (
-            "MAC: aa:bb:cc:dd:ee:ff | IP: 192.168.1.100 | "
-            f"First Seen: {date_added.isoformat()} | Last Seen: {last_seen.isoformat()}"
-        )
         
-        assert result == expected
+        # Check the table-like format
+        assert "aa:bb:cc:dd:ee:ff" in result
+        assert "192.168.1.100" in result
+        assert " | " in result  # Check for separator
+        assert "-" in result  # Default value for hostname/manufacturer
+        # Check date format (YYYY-MM-DD HH:MM) for local time
+        import re
+        assert re.search(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}', result) is not None
 
     def test_update_ip_address(self):
         """Test updating IP address."""

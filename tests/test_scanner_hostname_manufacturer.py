@@ -143,10 +143,12 @@ Nmap done: 256 IP addresses (2 hosts up) scanned in 2.50 seconds"""
 Host is up (0.001s latency).
 MAC Address: AA:BB:CC:DD:EE:FF (Dell Inc.)"""
         
+        # Create NetworkMonitor with persistence enabled and our test data file
         with patch('simple_scanner.scanner.get_core_data_file', return_value=data_file):
             monitor = NetworkMonitor(network='192.168.1.0/24', use_persistence=True)
-        
-        monitor._parse(initial_output)
+            
+            # Parse the output which should save to file
+            monitor._parse(initial_output)
         
         # Verify data was saved
         assert data_file.exists(), "Data file should exist after parsing"

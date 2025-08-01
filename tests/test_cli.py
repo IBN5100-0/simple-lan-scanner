@@ -44,6 +44,8 @@ class TestCLI:
         assert result.exit_code == 0
         assert 'Continuous scan every N seconds' in result.output
         assert '--interval' in result.output
+        assert '--online-only' in result.output
+        assert '--search' in result.output
 
     def test_gui_command_help(self):
         """Test GUI command help."""
@@ -279,3 +281,139 @@ class TestCLI:
             
             result = runner.invoke(app, ['monitor', '--interval', '30'])
             assert result.exit_code == 0
+
+    @patch('simple_scanner.cli.NetworkMonitor')
+    @patch('simple_scanner.cli.time.sleep')
+    def test_monitor_command_with_online_only(self, mock_sleep, mock_monitor_class):
+        """Test monitor command with --online-only flag."""
+        # Setup mock
+        mock_monitor = MagicMock()
+        mock_monitor.network = '192.168.1.0/24'
+        
+        # Create test devices with different last_seen times
+        from datetime import datetime, timezone, timedelta
+        now = datetime.now(timezone.utc)
+        online_device = MagicMock()
+        online_device.mac_address = "aa:bb:cc:dd:ee:ff"
+        online_device.ip_address = "192.168.1.100"
+        online_device.hostname = "online-device"
+        online_device.manufacturer = "Test"
+        online_device.last_seen = now - timedelta(seconds=30)  # Online
+        
+        offline_device = MagicMock()
+        offline_device.mac_address = "11:22:33:44:55:66"
+        offline_device.ip_address = "192.168.1.101"
+        offline_device.hostname = "offline-device"
+        offline_device.manufacturer = "Test"
+        offline_device.last_seen = now - timedelta(seconds=150)  # Offline
+        
+        mock_monitor.devices.return_value = [online_device, offline_device]
+        mock_monitor_class.return_value = mock_monitor
+        mock_monitor.get_device_header.return_value = "Header"
+        
+        # Make sleep raise KeyboardInterrupt to exit the loop
+        mock_sleep.side_effect = KeyboardInterrupt()
+        
+        runner = CliRunner()
+        
+        result = runner.invoke(app, ['monitor', '--online-only'])
+        
+        assert result.exit_code == 0
+        assert 'Stopped by user' in result.output
+        
+        # Verify NetworkMonitor was called correctly
+        mock_monitor_class.assert_called_once_with(
+            network=None, 
+            verbose=False, 
+            remove_stale=False,
+            use_persistence=True
+        )
+
+    @patch('simple_scanner.cli.NetworkMonitor')
+    @patch('simple_scanner.cli.time.sleep')
+    def test_monitor_command_with_search(self, mock_sleep, mock_monitor_class):
+        """Test monitor command with --search option."""
+        # Setup mock
+        mock_monitor = MagicMock()
+        mock_monitor.network = '192.168.1.0/24'
+        
+        # Create test devices
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc)
+        
+        device1 = MagicMock()
+        device1.mac_address = "aa:bb:cc:dd:ee:ff"
+        device1.ip_address = "192.168.1.100"
+        device1.hostname = "test-router"
+        device1.manufacturer = "Netgear"
+        device1.last_seen = now
+        
+        device2 = MagicMock()
+        device2.mac_address = "11:22:33:44:55:66"
+        device2.ip_address = "192.168.1.101"
+        device2.hostname = "laptop"
+        device2.manufacturer = "Apple"
+        device2.last_seen = now
+        
+        mock_monitor.devices.return_value = [device1, device2]
+        mock_monitor_class.return_value = mock_monitor
+        mock_monitor.get_device_header.return_value = "Header"
+        
+        # Make sleep raise KeyboardInterrupt to exit the loop
+        mock_sleep.side_effect = KeyboardInterrupt()
+        
+        runner = CliRunner()
+        
+        result = runner.invoke(app, ['monitor', '--search', 'router'])
+        
+        assert result.exit_code == 0
+        assert 'Stopped by user' in result.output
+        
+        # Verify NetworkMonitor was called correctly
+        mock_monitor_class.assert_called_once_with(
+            network=None, 
+            verbose=False, 
+            remove_stale=False,
+            use_persistence=True
+        )
+
+    @patch('simple_scanner.cli.NetworkMonitor')
+    @patch('simple_scanner.cli.time.sleep')
+    def test_monitor_command_with_online_only_and_search(self, mock_sleep, mock_monitor_class):
+        """Test monitor command with both --online-only and --search options."""
+        # Setup mock
+        mock_monitor = MagicMock()
+        mock_monitor.network = '192.168.1.0/24'
+        
+        # Create test devices
+        from datetime import datetime, timezone, timedelta
+        now = datetime.now(timezone.utc)
+        
+        device1 = MagicMock()
+        device1.mac_address = "aa:bb:cc:dd:ee:ff"
+        device1.ip_address = "192.168.1.100"
+        device1.hostname = "router"
+        device1.manufacturer = "Netgear"
+        device1.last_seen = now - timedelta(seconds=30)  # Online
+        
+        device2 = MagicMock()
+        device2.mac_address = "11:22:33:44:55:66"
+        device2.ip_address = "192.168.1.101"
+        device2.hostname = "router-old"
+        device2.manufacturer = "Netgear"
+        device2.last_seen = now - timedelta(seconds=150)  # Offline
+        
+        mock_monitor.devices.return_value = [device1, device2]
+        mock_monitor_class.return_value = mock_monitor
+        mock_monitor.get_device_header.return_value = "Header"
+        
+        # Make sleep raise KeyboardInterrupt to exit the loop
+        mock_sleep.side_effect = KeyboardInterrupt()
+        
+        runner = CliRunner()
+        
+        result = runner.invoke(app, ['monitor', '--online-only', '--search', 'router'])
+        
+        assert result.exit_code == 0
+        assert 'Stopped by user' in result.output
+        assert 'Online devices: 1' in result.output  # Only online router should be shown
